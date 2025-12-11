@@ -1,0 +1,13 @@
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "course": "CIS1200",
+  "availability": [
+    "Monday 2-4pm",
+    "Wednesday 3-5pm",
+    "Friday 10am-12pm"
+  ],
+  "study_preference": "PSets",
+  "commitment_confirmed": true
+}
+
