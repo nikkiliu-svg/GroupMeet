@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GroupMeet - Study Group Matching</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional inline styles if needed */
+    </style>
+</head>
+<body>
+    <!-- Home Page (shown when not logged in) -->
+    <div id="home-page" class="page">
+        <div class="container">
+            <div class="logo-container">
+                <img src="logo.svg" alt="GroupMeet Logo" class="main-logo">
+            </div>
+            <h1>GroupMeet</h1>
+            <p class="subtitle">Find your perfect study group match</p>
+            <p class="description">
+                GroupMeet helps Penn students find compatible study partners based on 
+                course, availability, and study preferences. Join study groups for multiple 
+                courses and connect with classmates who share your schedule and learning style.
+            </p>
+            <div class="features">
+                <div class="feature">
+                    <strong>Multiple Courses</strong>
+                    <p>Join study groups for different courses</p>
+                </div>
+                <div class="feature">
+                    <strong>Smart Matching</strong>
+                    <p>Matched based on availability and preferences</p>
+                </div>
+                <div class="feature">
+                    <strong>Study Together</strong>
+                    <p>Connect with compatible study partners</p>
+                </div>
+            </div>
+            <!-- PennKey Login Button (Production Mode) -->
+            <button id="login-btn" class="btn-primary">Login with PennKey</button>
+            
+            <!-- Dev Login Form (Development Mode) -->
+            <div id="dev-login-form" class="dev-login-form hidden">
+                <h3 style="margin-bottom: 20px; color: #667eea;">Development Mode Login</h3>
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                    Enter a username to test with multiple users (e.g., "alice", "bob", "charlie")
+                </p>
+                <form id="dev-login-form-element">
+                    <div class="form-group">
+                        <label for="dev-username">Username/Email *</label>
+                        <input 
+                            type="text" 
+                            id="dev-username" 
+                            name="username" 
+                            placeholder="Enter username (e.g., alice)"
+                            required
+                            autocomplete="username"
+                        >
+                    </div>
+                    <button type="submit" class="btn-primary">Login</button>
+                </form>
+                <div id="dev-login-message" class="hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Page (shown when logged in) -->
+    <div id="dashboard-page" class="page hidden">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="navbar-content">
+                <div class="navbar-brand">
+                    <img src="logo.svg" alt="GroupMeet" class="navbar-logo">
+                </div>
+                <div class="navbar-links">
+                    <a href="#" id="nav-dashboard" class="nav-link active">Dashboard</a>
+                    <a href="#" id="nav-join" class="nav-link">Join Group</a>
+                </div>
+                <div class="navbar-user">
+                    <span id="user-name" class="user-name-text">Loading...</span>
+                    <button id="logout-btn" class="btn-logout">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            <!-- Dashboard View (My Groups) -->
+            <div id="dashboard-view" class="view">
+                <section id="my-groups-section">
+                    <h2>My Groups</h2>
+                    <div id="groups-container">
+                        <p>Loading your groups...</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Join Group View (Form) -->
+            <div id="join-group-view" class="view hidden">
+                <section id="join-group-section">
+                    <h2>Join a New Group</h2>
+                    <div id="join-form-container">
+                        <form id="join-group-form">
+                        <div class="form-group">
+                            <label for="course-select">Select Course *</label>
+                            <select id="course-select" name="course" required>
+                                <option value="">Choose a course...</option>
+                                <option value="CIS1200">CIS1200 - Programming Languages and Techniques</option>
+                                <option value="CIS1210">CIS1210 - Data Structures and Algorithms</option>
+                                <option value="CIS1600">CIS1600 - Mathematical Foundations of Computer Science</option>
+                                <option value="NETS2120">NETS2120 - Scalable and Cloud Computing</option>
+                                <option value="MATH1040">MATH1040 - Calculus I</option>
+                                <option value="MATH1140">MATH1140 - Calculus II</option>
+                                <option value="PHYS1500">PHYS1500 - Principles of Physics I</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Availability * (Click cells to select times)</label>
+                            <div id="calendar-container"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Study Preference *</label>
+                            <div class="radio-group">
+                                <div class="radio-item">
+                                    <input type="radio" id="pref-psets" name="study_preference" value="PSets" required>
+                                    <label for="pref-psets">PSets - Problem solving and homework help</label>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" id="pref-concept" name="study_preference" value="Concept Review" required>
+                                    <label for="pref-concept">Concept Review - Understanding theory and concepts</label>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" id="pref-discussion" name="study_preference" value="Discussion" required>
+                                    <label for="pref-discussion">Discussion - Group discussions and explanations</label>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" id="pref-exam" name="study_preference" value="Exam Prep" required>
+                                    <label for="pref-exam">Exam Prep - Practice exams and review</label>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" id="pref-mixed" name="study_preference" value="Mixed" required>
+                                    <label for="pref-mixed">Mixed - Combination of all approaches</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Location Preference *</label>
+                            <div class="radio-group">
+                                <div class="radio-item">
+                                    <input type="radio" id="loc-inperson" name="location_preference" value="In-person" required>
+                                    <label for="loc-inperson">In-person only</label>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" id="loc-virtual" name="location_preference" value="Virtual" required>
+                                    <label for="loc-virtual">Virtual only</label>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" id="loc-either" name="location_preference" value="Either" required checked>
+                                    <label for="loc-either">Either (flexible)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="commitment" name="commitment_confirmed" required>
+                                <label for="commitment">I confirm my commitment to participate in study group sessions *</label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Join Group</button>
+                    </form>
+                    <div id="form-message" class="hidden"></div>
+                </div>
+            </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Details Modal -->
+    <div id="group-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="modal-title">Group Details</h2>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="calendar.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>
