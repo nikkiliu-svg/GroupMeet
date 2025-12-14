@@ -42,17 +42,17 @@
 
 _List all time slots when the ENTIRE team can meet with a TA. Use Eastern Time. Format: Day, Time-Time_
 
-- Monday: [e.g., 2:00 PM - 4:00 PM, 6:00 PM - 8:00 PM]
-- Tuesday: [e.g., 10:00 AM - 12:00 PM]
-- Wednesday: [e.g., 3:00 PM - 5:00 PM]
-- Thursday: [Not available]
-- Friday: [e.g., 1:00 PM - 3:00 PM]
+- Monday: N/A
+- Tuesday: N/A
+- Wednesday: N/A
+- Thursday: N/A
+- Friday: 1:00 PM - 3:00 PM
 
-**Preferred meeting duration**: [30 min / 45 min / 60 min]
+**Preferred meeting duration**: 30 min
 
 **Meeting format preference**: Zoom
 
-**Primary contact for scheduling**: [Name and email]
+**Primary contact for scheduling**: Nikki Liu, nikkiliu@sas.upenn.edu
 
 ---
 
@@ -868,7 +868,7 @@ Starting Wednesday, Nov 19th (Week 1), immediately after the form is live.
 
 - _________________________ [Name], [Date]
 - _________________________ [Name], [Date]
-- _________________________ [Name], [Date]
+- Brandon Yan, 11/13/2025
 - Nikki Liu, 11/13/2025
 
 ---
