@@ -95,40 +95,38 @@ GroupMeet is a lightweight web platform that matches Penn students into study gr
 
 ## System Architecture
 
+
 ### Flow Diagram
 
-_Required: Include a visual flow diagram showing the major components/stages of your project_
-
-**Flow diagram location**: [e.g., `docs/flow-diagram.pdf` or embed image here]
+**Flow diagram location**: 
+![](ArchDiagram.png)
 
 Your flow diagram MUST clearly show:
-- [ ] Where/when the crowd touches the data
-- [ ] Your quality control module
-- [ ] Your aggregation module
-- [ ] Data flow between components
-- [ ] What happens before crowd involvement
-- [ ] What happens after crowd contribution
+- [X] Where/when the crowd touches the data
+- [X] Your quality control module
+- [X] Your aggregation module
+- [X] Data flow between components
+- [X] What happens before crowd involvement
+- [X] What happens after crowd contribution
 
-**If you haven't created it yet**: Describe in words the major components and their relationships:
-
-1. [Component 1] → [Component 2] → [Component 3] ...
 
 ### Major System Components
 
-_List all major components with point values (1-4) indicating implementation complexity. Total should be 15-20 points._
-
 | Component | Description | Points | Owner(s) | Dependencies |
 |-----------|-------------|--------|----------|--------------|
-| [Component 1] | [Brief description] | [1-4] | [Name(s)] | [What must be done first] |
-| [Component 2] | [Brief description] | [1-4] | [Name(s)] | [What must be done first] |
-| [Component 3] | [Brief description] | [1-4] | [Name(s)] | [What must be done first] |
-| [Component 4] | [Brief description] | [1-4] | [Name(s)] | [What must be done first] |
-| [Component 5] | [Brief description] | [1-4] | [Name(s)] | [What must be done first] |
+| **C1. Auth & QC Service** | Flask endpoints that handle CAS login, maintain sessions, and run enrollment/QC checks before accepting profiles. | 4 | Connor, Nikki | Roster ingestion done; CAS credentials configured |
+| **C2. Intake & Feedback Frontend** | React UI for signup (preferences form) and post-match feedback form, wired to backend via REST. | 3 | Brandon | Auth endpoints available; basic API contract agreed upon |
+| **C3. Matching / Aggregation Engine** | Batch script/module that reads validated profiles, computes compatibility, and forms groups of 3–5 with scores. | 4 | Nikki | QC-validated profile data in Firebase; schema stable |
+| **C4. Notification & Email Utility** | Shared utility that formats and sends match emails and follow-up feedback emails via SendGrid or SMTP. | 3 | Alexander | Group assignments available; SMTP/SendGrid configured |
+| **C5. Admin Dashboard & Analytics** | Lightweight dashboard to inspect participation, group structures, and satisfaction metrics; supports CSV export. | 3 | Alexander, Connor | Matching + feedback data available; aggregation schema finalized |
 
-**Total Points**: [Sum - should be 15-20]
+**Total Points**: 4 + 3 + 4 + 3 + 3 = **17 points**
 
-**Point allocation rationale**: 
-_If teaching staff questions your point distribution, explain your reasoning here_
+**Point allocation rationale**:  
+- **C1** and **C3** are the most technically involved: they touch security, data integrity, and the core crowdsourcing logic, hence 4 points each.  
+- **C2**, **C4**, and **C5** are smaller but still non-trivial integrations that involve UI work, external APIs, and data visualization, hence 3 points each.  
+- The distribution keeps the workload balanced and reflects where most engineering complexity and risk lie (auth + matching).
+
 
 ### Detailed Workflow
 
@@ -143,14 +141,14 @@ _Step-by-step description of how your system works from start to finish_
 7. **Distribution**: The System emails the formed groups, introducing them and providing a "First Meeting Agenda" template.
 8. **Feedback**: 5 days later, students receive a "Rate your Group" link.
 
-### Human vs. Automated Tasks
+## Human vs. Automated Tasks
 
 | Task | Performed By | Justification |
 |------|--------------|---------------|
-| [Task 1] | Human | [Why human intelligence is required] |
-| [Task 2] | Automated | [Why this can/should be automated] |
-| [Task 3] | Human | [Why human intelligence is required] |
-| [Task 4] | Automated | [Why this can/should be automated] |
+| Filling out course, availability, and study preference form | **Human (student)** | Only the student knows their real schedule constraints, working style, and goals; this requires subjective self-report. |
+| Verifying enrollment and PennKey authenticity | **Automated (QC module)** | Given CAS assertions and roster data, enrollment checks are a straightforward database lookup and rules-based validation. |
+| Forming study groups from validated profiles | **Automated (aggregation module)** | Grouping can be done by deterministic algorithms/heuristics that maximize compatibility based on structured features. |
+| Rating group quality and giving feedback | **Human (student)** | Perceived group quality, whether meetings occurred, and subjective satisfaction cannot be reliably inferred by an algorithm. |
 
 ---
 
@@ -179,22 +177,64 @@ Our QC strategy relies on **Institutional Authentication (SSO)** combined with *
 
 ### QC Module Code Plan
 
-**Location in repo**: [e.g., `src/qc/quality_control.py`]
+**Location in repo**: `src/qc/quality_control.py` (or a similar path, e.g., `backend/qc/quality_control.py`)
 
-**Key functions/classes**:
-1. [Function/class name]: [Purpose]
-2. [Function/class name]: [Purpose]
-3. [Function/class name]: [Purpose]
+**Key functions/classes** (suggested):
 
-**Input data format**: 
-```
-[Describe or show example of input data structure]
-```
+1. `validate_session(request) -> str | None`  
+   - **Purpose**: Validate the CAS ticket / session cookie and return the authenticated `pennkey` or `None` if invalid.
+
+2. `check_enrollment(pennkey: str, course_id: str) -> bool`  
+   - **Purpose**: Check if `pennkey` appears in the roster for `course_id`, using roster data loaded at startup or from Firebase.
+
+3. `check_eligibility(pennkey: str, course_id: str) -> tuple[bool, str | None]`  
+   - **Purpose**: Enforce additional rules such as “not already matched,” “not opted out,” and return `(is_ok, error_code)`.
+
+4. `sanitize_form_payload(raw_payload: dict) -> dict`  
+   - **Purpose**: Strip unexpected fields, normalize availability and preference fields, and enforce type/format constraints.
+
+5. `qc_intake_submission(session, raw_payload) -> dict`  
+   - **Purpose**: Orchestrator function called by the Flask route:
+     - Grabs `pennkey` from session (via `validate_session`).  
+     - Runs `check_enrollment` and `check_eligibility`.  
+     - Calls `sanitize_form_payload` if all checks pass.  
+     - Writes sanitized data to Firebase under `validated_profiles`.  
+     - Returns a standard QC response object.
+
+**Input data format** (from intake endpoint):
+
+```json
+{
+  "course": "CIS1200",
+  "availability": ["Mon_PM", "Tue_AM", "Thu_PM"],
+  "study_style": "collaborative",
+  "goal": "Problem sets",
+  "other_notes": "Prefer in-person on campus"
+}
 
 **Output data format**:
-```
-[Describe or show example of output data structure]
-```
+
+{
+  "is_valid": true,
+  "error_code": null,
+  "sanitized_data": {
+    "pennkey": "amehta26",
+    "course": "CIS1200",
+    "availability": ["Mon_PM", "Tue_AM", "Thu_PM"],
+    "study_style": "collaborative",
+    "goal": "Problem sets",
+    "timestamp": "2025-11-13T10:00:00Z"
+  }
+}
+
+### on failure: 
+
+{
+  "is_valid": false,
+  "error_code": "NOT_ENROLLED",
+  "sanitized_data": null
+}
+
 
 **Sample scenario**:
 _Walk through a concrete example of your QC module in action_
@@ -207,71 +247,125 @@ _Walk through a concrete example of your QC module in action_
 
 ### Aggregation Strategy Overview
 
-GroupMeet aggregates crowd-provided preference data (availability, study style, goals) into study groups using a pairwise compatibility scoring function followed by hierarchical clustering. Each student contributes structured data once; aggregation combines these contributions to form optimal groups rather than selecting a single “correct” answer.
-The aggregation process is batch-based and runs after a signup deadline. All inputs are first validated by QC, ensuring aggregation only operates on trusted data.
+Our aggregation problem is **group formation**, not majority voting. The goal is to place students into groups of 3–5 that:
+
+- Share at least one overlapping availability block.  
+- Have compatible study styles and goals.  
+- Avoid leaving large numbers of students unmatched.
+
+We treat each validated student profile as a feature vector:
+
+- Categorical: `study_style`, `goal`, maybe `experience_level`.  
+- Multi-label: `availability` (list of time blocks).  
+- Course: `course` (for now mostly a single course, but design supports multiple).
+
+We then define a **pairwise compatibility score** that combines:
+
+1. **Availability overlap score**: fraction or count of shared time blocks.  
+2. **Preference similarity score**: 1 if preferences match, 0.5 if “compatible”, 0 otherwise.  
+3. **Optional weightings**: e.g., give 70% weight to availability and 30% to preferences.
+
+The aggregation engine uses these scores to construct groups via a simple heuristic:
+
+1. For each course, build a compatibility graph where nodes are students and edge weights are compatibility scores.  
+2. Iteratively:
+   - Pick the unmatched student with the highest average compatibility to others.  
+   - Form a group by greedily adding the best-matching students until the group size reaches 3–5.  
+   - Remove those students from the unmatched pool and repeat.
+
+This gives a clear, explainable baseline. If time permits, we can layer in a more advanced clustering method (e.g., k-medoids or constrained clustering) for comparison.
+
+---
 
 ### Aggregation Method
 
-**Primary method**: Weighted compatibility scoring + hierarchical clustering
+**Primary method**: **Greedy compatibility-based grouping**
 
 **Implementation details**:
-- Input format: List of validated Submission objects
-- Processing:
-Compute pairwise compatibility matrix
-Convert similarity → distance
-Apply agglomerative clustering
-Post-process to enforce min/max group size
-- Output format: List of finalized study groups
-- Handling edge cases:
-Too few students → no groups
-Oversized clusters → split
-Undersized clusters → redistribution or removal
 
-**Why this method**:
-Preferences are categorical and sparse; rule-based scoring is interpretable and robust at small scale. Hierarchical clustering avoids needing a predefined number of clusters and performs well for cohorts of 25–50 students.
+- **Input format**: List of QC-validated student objects for a given course:
 
-### Aggregation Module Code Plan
-
-**Location in repo**: backend/src/aggregation/
-
-**Key functions/classes**:
-1. CompatibilityScorer – Computes pairwise compatibility
-2. GroupMatcher – Runs clustering + size adjustment
-3. MatchOrchestrator – Executes batch run and triggers emails
-
-**Input data format**:
-{
-  "pennkey": "abc123",
-  "availability": ["Mon_PM", "Tue_AM"],
-  "study_style": "visual",
-  "goal": "problem_sets"
-}
-
+```json
+[
+  {
+    "pennkey": "amehta26",
+    "course": "CIS1200",
+    "availability": ["Mon_PM", "Wed_PM"],
+    "study_style": "collaborative",
+    "goal": "Problem sets"
+  },
+  {
+    "pennkey": "connorcc",
+    "course": "CIS1200",
+    "availability": ["Mon_PM", "Thu_PM"],
+    "study_style": "collaborative",
+    "goal": "Problem sets"
+  }
+]
 
 **Output data format**:
+```json
 {
-  "group_id": 3,
-  "members": ["abc123", "def456", "ghi789"],
-  "compatibility_score": 0.82,
-  "suggested_meeting_time": "Mon_PM"
+  "group_id": "CIS1200-001",
+  "course": "CIS1200",
+  "members": ["amehta26", "connorcc", "bdonyan"],
+  "meeting_slot": "Mon_PM",
+  "avg_compat": 0.87,
+  "created_at": "2025-11-22T12:00:00Z"
 }
 
+```
 
 **Sample scenario**:
-_Walk through a concrete example of your aggregation module in action_
 
-Three students share a Monday PM slot and same goal → compatibility > 0.8 → clustered together → group email sent.
+Suppose 12 validated students submit profiles for CIS1200. Each provides availability (e.g., Mon_PM, Tue_AM), study style (collaborative vs. independent), and goals (problem sets vs. concept review).
+
+The aggregation module computes pairwise compatibility across all 12 students based on overlapping availability and matching preferences. It then forms groups greedily:
+
+- Group 1: Students with shared Mon_PM availability and similar “collaborative + problem-set” preferences → avg_compat = 0.86  
+- Group 2: Students who overlap on Tue_AM with mixed but compatible styles → avg_compat = 0.78  
+- Group 3: Last four students overlap best on Thu_PM → avg_compat = 0.81  
+
+The module outputs three groups of size 3–4, each with a recommended meeting slot and compatibility score.
 
 ### Integration: QC ↔ Aggregation
 
 **How do these modules interact?**
-QC always runs first
-Aggregation only reads from validated Firebase submissions
-Shared schema (Submission.to_dict())
 
-**Data flow diagram** (if different from main flow diagram):
-[Location or description]
+QC always runs **before** aggregation. Every intake submission first passes through the QC module, which:
 
+1. Confirms the user’s CAS-authenticated `pennkey`.
+2. Verifies enrollment against the course roster.
+3. Checks basic eligibility (not already matched / not opted out).
+4. Sanitizes and normalizes the payload.
+
+Only after these steps does the profile get written to the `validated_profiles/{course_id}/{pennkey}` collection in Firebase.  
+
+The **aggregation module** never touches raw form data; it only reads from `validated_profiles`. This guarantees that:
+
+- Every profile in the matching pool corresponds to a real Penn student in the course.
+- Each student appears at most once per course in the matching run.
+- Downstream matching logic can assume a consistent schema.
+
+In other words:
+
+> **Raw Form Submissions → QC Module → Validated Profiles → Aggregation / Matching**
+
+**Data flow diagram** (conceptual, text-only)
+
+```text
+Form Submission
+    ↓
+QC Module (CAS validation + roster + eligibility + sanitization)
+    ↓ (only if valid)
+Firebase: validated_profiles/{course_id}/{pennkey}
+    ↓
+Aggregation / Matching Engine
+    ↓
+Firebase: groups/{course_id}/{group_id}
+    ↓
+Notification + Feedback
+```
 ---
 
 ## User Interface & Mockups
