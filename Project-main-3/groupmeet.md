@@ -866,8 +866,8 @@ Starting Wednesday, Nov 19th (Week 1), immediately after the form is live.
 
 **Team signatures**:
 
-- _________________________ [Name], [Date]
-- _________________________ [Name], [Date]
+- Alexander Mehta, 11/13/2025
+- Connor Cummings, 11/13/2025
 - Brandon Yan, 11/13/2025
 - Nikki Liu, 11/13/2025
 
